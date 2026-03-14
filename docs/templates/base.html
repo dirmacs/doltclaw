@@ -6,10 +6,11 @@
   <title>{% block title %}{{ config.title }}{% endblock %}</title>
   <meta name="description" content="{{ config.description }}">
   <link rel="stylesheet" href="{{ get_url(path='style.css') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ get_url(path='favicon.svg') }}">
 </head>
 <body>
   <nav>
-    <a href="{{ config.base_url }}" class="logo">doltclaw</a>
+    <a href="{{ config.base_url }}" class="logo"><img src="{{ get_url(path='favicon.svg') }}" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 6px;">doltclaw</a>
     <div class="nav-links">
       <a href="{{ config.base_url }}">Home</a>
       <a href="{{ get_url(path='@/guide.md') }}">Guide</a>

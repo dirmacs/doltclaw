@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="docs/static/doltclaw-logo.svg" alt="doltclaw" width="200" />
+</p>
+
+<p align="center">
   <strong>doltclaw — Minimal agent runtime</strong>
 </p>
 

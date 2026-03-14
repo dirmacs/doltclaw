@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d1117;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="clawGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f78166;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#da3633;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="circuitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#58a6ff;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#1f6feb;stop-opacity:0.3" />
+    </linearGradient>
+    <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#58a6ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#388bfd;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="url(#bgGrad)" />
+
+  <!-- Circuit traces (neural pathways) -->
+  <g stroke="url(#circuitGrad)" stroke-width="1.5" fill="none" stroke-linecap="round">
+    <path d="M256 160 L256 120 L200 120" />
+    <path d="M256 160 L256 120 L312 120" />
+    <path d="M200 260 L140 260 L140 220" />
+    <path d="M312 260 L372 260 L372 220" />
+    <path d="M230 300 L180 340 L180 380" />
+    <path d="M282 300 L332 340 L332 380" />
+    <circle cx="200" cy="120" r="3" fill="#58a6ff" fill-opacity="0.5" />
+    <circle cx="312" cy="120" r="3" fill="#58a6ff" fill-opacity="0.5" />
+    <circle cx="140" cy="220" r="3" fill="#58a6ff" fill-opacity="0.4" />
+    <circle cx="372" cy="220" r="3" fill="#58a6ff" fill-opacity="0.4" />
+    <circle cx="180" cy="380" r="3" fill="#58a6ff" fill-opacity="0.3" />
+    <circle cx="332" cy="380" r="3" fill="#58a6ff" fill-opacity="0.3" />
+  </g>
+
+  <!-- Three claw marks (the "claw" in doltclaw) -->
+  <g fill="none" stroke="url(#clawGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left talon -->
+    <path d="M185 150 Q175 200 195 250 Q210 285 220 310" />
+    <!-- Center talon (longest) -->
+    <path d="M256 130 Q250 190 256 250 Q260 290 256 320" />
+    <!-- Right talon -->
+    <path d="M327 150 Q337 200 317 250 Q302 285 292 310" />
+  </g>
+
+  <!-- Claw tips (sharp points) -->
+  <g fill="#da3633">
+    <circle cx="220" cy="310" r="5" />
+    <circle cx="256" cy="320" r="5" />
+    <circle cx="292" cy="310" r="5" />
+  </g>
+
+  <!-- Core hex (runtime core) -->
+  <polygon points="256,185 284,200 284,230 256,245 228,230 228,200"
+           fill="none" stroke="url(#coreGrad)" stroke-width="2.5" />
+  <polygon points="256,195 274,205 274,225 256,235 238,225 238,205"
+           fill="#58a6ff" fill-opacity="0.15" />
+
+  <!-- Core dot -->
+  <circle cx="256" cy="215" r="4" fill="#58a6ff" />
+  <circle cx="256" cy="215" r="10" fill="none" stroke="#58a6ff" stroke-width="1" stroke-opacity="0.3" />
+
+  <!-- DOLTCLAW text -->
+  <text x="256" y="385" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif"
+        font-size="40" font-weight="800" fill="#c9d1d9" letter-spacing="8">DOLTCLAW</text>
+
+  <!-- Subtitle -->
+  <text x="256" y="418" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif"
+        font-size="12" font-weight="500" fill="#8b949e" letter-spacing="6">MINIMAL AGENT RUNTIME</text>
+
+  <!-- dirmacs badge -->
+  <text x="256" y="445" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif"
+        font-size="10" font-weight="400" fill="#58a6ff" fill-opacity="0.6" letter-spacing="4">DIRMACS</text>
+</svg>
