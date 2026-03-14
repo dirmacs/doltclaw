@@ -1,0 +1,8 @@
+model = "mistralai/devstral-2-123b-instruct-2512"
+temperature = 0.6
+
+[healing]
+fix_errors = true
+fix_warnings = true
+fix_tests = true
+auto_commit = false

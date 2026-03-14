@@ -6,6 +6,7 @@ use crate::{Error, Result};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
+use std::str::FromStr;
 
 /// Top-level doltclaw configuration
 #[derive(Debug, Clone, Deserialize)]
@@ -73,6 +74,10 @@ pub struct AgentConfig {
     #[serde(default = "default_max_iterations")]
     pub max_iterations: usize,
 
+    /// HTTP request timeout in milliseconds (default: 30000)
+    #[serde(default = "default_timeout_ms")]
+    pub timeout_ms: u64,
+
     /// Inference parameters
     #[serde(default)]
     pub params: InferenceParams,
@@ -112,6 +117,9 @@ fn default_max_tokens() -> usize {
 fn default_max_iterations() -> usize {
     50
 }
+fn default_timeout_ms() -> u64 {
+    30000
+}
 fn default_temperature() -> f32 {
     1.0
 }
@@ -125,6 +133,7 @@ impl Default for AgentConfig {
             primary: String::new(),
             fallbacks: Vec::new(),
             max_iterations: default_max_iterations(),
+            timeout_ms: default_timeout_ms(),
             params: InferenceParams::default(),
         }
     }
@@ -169,11 +178,7 @@ impl Config {
             .map_err(|e| Error::Config(format!("Failed to parse {}: {}", path.display(), e)))
     }
 
-    /// Load from a TOML string (for testing).
-    pub fn from_str(s: &str) -> Result<Self> {
-        let expanded = substitute_env_vars(s);
-        toml::from_str(&expanded).map_err(|e| Error::Config(format!("Failed to parse TOML: {}", e)))
-    }
+
 
     /// Resolve a model reference to its provider and model config.
     pub fn resolve_model(&self, ref_str: &str) -> Result<(&ProviderConfig, &ModelConfig)> {
@@ -201,6 +206,16 @@ impl Config {
             chain.push(fb.as_str());
         }
         chain
+    }
+}
+
+impl FromStr for Config {
+    type Err = Error;
+
+    /// Parse a Config from a TOML string with environment variable substitution.
+    fn from_str(s: &str) -> Result<Self> {
+        let expanded = substitute_env_vars(s);
+        toml::from_str(&expanded).map_err(|e| Error::Config(format!("Failed to parse TOML: {}", e)))
     }
 }
 
@@ -269,7 +284,7 @@ max_tokens = 16384
 primary = "nvidia-nim/qwen/qwen3.5-122b-a10b"
 fallbacks = []
 "#;
-        let config = Config::from_str(toml).unwrap();
+        let config: Config = toml.parse().unwrap();
         assert_eq!(config.providers.len(), 1);
         let provider = config.providers.get("nvidia-nim").unwrap();
         assert_eq!(provider.models.len(), 1);
@@ -296,7 +311,7 @@ reasoning = true
 primary = "nvidia-nim/qwen/qwen3.5-122b-a10b"
 fallbacks = ["nvidia-nim/z-ai/glm4.7"]
 "#;
-        let config = Config::from_str(toml).unwrap();
+        let config: Config = toml.parse().unwrap();
         let (provider, model) = config
             .resolve_model("nvidia-nim/qwen/qwen3.5-122b-a10b")
             .unwrap();
@@ -314,7 +329,7 @@ fallbacks = ["nvidia-nim/z-ai/glm4.7"]
 primary = "nvidia-nim/qwen/qwen3.5-122b-a10b"
 fallbacks = ["nvidia-nim/stepfun-ai/step-3.5-flash", "nvidia-nim/z-ai/glm4.7"]
 "#;
-        let config = Config::from_str(toml).unwrap();
+        let config: Config = toml.parse().unwrap();
         let chain = config.model_chain();
         assert_eq!(chain.len(), 3);
         assert_eq!(chain[0], "nvidia-nim/qwen/qwen3.5-122b-a10b");

@@ -28,9 +28,14 @@ impl OpenAiCompatBackend {
         provider: &ProviderConfig,
         model: &ModelConfig,
         params: &InferenceParams,
+        timeout_ms: u64,
     ) -> Self {
+        let http = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_millis(timeout_ms))
+            .build()
+            .expect("reqwest Client build failed — TLS backend unavailable");
         Self {
-            http: reqwest::Client::new(),
+            http,
             api_url: provider.base_url.clone(),
             api_key: provider.api_key.clone(),
             model: model.id.clone(),

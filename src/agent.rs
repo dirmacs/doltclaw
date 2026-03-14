@@ -42,7 +42,7 @@ impl Agent {
 
         for model_ref_str in config.model_chain() {
             let (provider, model) = config.resolve_model(model_ref_str)?;
-            let backend = OpenAiCompatBackend::new(provider, model, &config.agent.params);
+            let backend = OpenAiCompatBackend::new(provider, model, &config.agent.params, config.agent.timeout_ms);
             backends.push((model_ref_str.to_string(), Box::new(backend)));
         }
 
@@ -282,7 +282,7 @@ reasoning = true
 primary = "nvidia-nim/qwen/qwen3.5-122b-a10b"
 fallbacks = ["nvidia-nim/z-ai/glm4.7"]
 "#;
-        let config = Config::from_str(toml).unwrap();
+        let config: Config = toml.parse().unwrap();
         let agent = Agent::from_config(config).unwrap();
         assert_eq!(agent.backends.len(), 2);
         assert!(agent.history().is_empty());
@@ -294,7 +294,7 @@ fallbacks = ["nvidia-nim/z-ai/glm4.7"]
 [agent]
 primary = "missing/model"
 "#;
-        let config = Config::from_str(toml).unwrap();
+        let config: Config = toml.parse().unwrap();
         assert!(Agent::from_config(config).is_err());
     }
 }

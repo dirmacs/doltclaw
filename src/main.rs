@@ -21,6 +21,9 @@ enum Commands {
         /// Config file path
         #[arg(short, long, default_value = "doltclaw.toml")]
         config: String,
+        /// HTTP timeout in milliseconds (overrides config)
+        #[arg(long)]
+        timeout: Option<u64>,
     },
     /// Validate configuration
     Check {
@@ -42,8 +45,11 @@ async fn main() -> doltclaw::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Run { prompt, config } => {
-            let cfg = doltclaw::Config::load(config.as_ref())?;
+        Commands::Run { prompt, config, timeout } => {
+            let mut cfg = doltclaw::Config::load(config.as_ref())?;
+            if let Some(ms) = timeout {
+                cfg.agent.timeout_ms = ms;
+            }
             let mut agent = doltclaw::Agent::from_config(cfg)?;
             let response = agent.execute(&prompt).await?;
             println!("{}", response.content);
