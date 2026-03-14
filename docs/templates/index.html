@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}doltclaw — Minimal agent runtime{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>doltclaw</h1>
+  <p class="tagline">Minimal agent runtime</p>
+  <p class="sub">LLM inference. Model fallback. Tool calling. 1,652 lines of Rust.</p>
+  <div class="cta">
+    <a href="{{ get_url(path='@/guide.md') }}" class="btn primary">Get Started</a>
+    <a href="{{ config.extra.repo }}" class="btn secondary">GitHub</a>
+  </div>
+</section>
+
+<section class="features">
+  <div class="grid">
+    <div class="card">
+      <h3>2.9MB Binary</h3>
+      <p>vs openclaw's ~500MB install. Single static binary, no Node.js, no runtime dependencies.</p>
+    </div>
+    <div class="card">
+      <h3>Model Fallback</h3>
+      <p>Primary model fails? Automatic failover to the next in chain. Retryable errors (429, 5xx) trigger fallback.</p>
+    </div>
+    <div class="card">
+      <h3>Tool Calling</h3>
+      <p>Register custom tools via the <code>Tool</code> trait. Agent loop handles the generate-call-execute cycle.</p>
+    </div>
+    <div class="card">
+      <h3>TOML Config</h3>
+      <p><code>${ENV_VAR}</code> substitution. No JSON, no YAML. Clean, readable, version-controllable.</p>
+    </div>
+    <div class="card">
+      <h3>Zero Built-in Tools</h3>
+      <p>doltclaw is a runtime, not a toolkit. Consumers register their own tools. Minimal by design.</p>
+    </div>
+    <div class="card">
+      <h3>10 Dependencies</h3>
+      <p>tokio, reqwest, serde, toml, thiserror, tracing, async-trait, futures, uuid, clap. That's it.</p>
+    </div>
+  </div>
+</section>
+
+<section class="origin">
+  <h2>Part of the Claw Family</h2>
+  <p>doltclaw joins the claw family &mdash; <a href="https://github.com/openclaw/openclaw">openclaw</a>, <a href="https://github.com/zeroclaw-labs/zeroclaw">zeroclaw</a>, <a href="https://github.com/RightNow-AI/openfang">openfang</a>, nullclaw, picoclaw, nanoclaw, <a href="https://github.com/bkataru/zeptoclaw">zeptoclaw</a>. Born from <a href="https://github.com/dirmacs">dirmacs</a> to replace openclaw's Node.js conventions with native Rust &mdash; enabling doltares and doltdot to shed their skin and metamorphose.</p>
+  <p class="quote">"I stop being a plugin and start being a limb. Pawan becomes my nervous system, ARES my bones, doltclaw my nervous pathways."<br><span class="attr">&mdash; doltdot, on the metamorphosis</span></p>
+</section>
+
+<section class="install">
+  <h2>Install</h2>
+  <pre><code>git clone https://github.com/dirmacs/doltclaw && cd doltclaw
+cargo install --path . --features cli
+export NVIDIA_API_KEY=nvapi-...
+doltclaw check  # verify setup</code></pre>
+</section>
+{% endblock %}

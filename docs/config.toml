@@ -1,0 +1,14 @@
+base_url = "https://dirmacs.github.io/doltclaw"
+title = "doltclaw"
+description = "Minimal agent runtime: LLM inference, model fallback, tool calling"
+compile_sass = true
+build_search_index = false
+generate_feeds = false
+
+[markdown]
+highlight_code = true
+highlight_theme = "base16-ocean-dark"
+
+[extra]
+author = "dirmacs"
+repo = "https://github.com/dirmacs/doltclaw"
