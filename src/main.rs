@@ -7,6 +7,11 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "doltclaw", version, about = "Minimal agent runtime for dirmacs")]
 struct Cli {
+    /// Load environment variables from a .env file before running
+    /// (default: tries .env in current directory, then ~/.config/doltclaw/.env)
+    #[arg(long, value_name = "PATH", global = true)]
+    env_file: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -14,10 +19,18 @@ struct Cli {
 #[cfg(feature = "cli")]
 #[derive(Subcommand)]
 enum Commands {
-    /// Run a prompt through the agent
+    /// Run a prompt through the agent.
+    /// Prompt sources (in priority order):
+    ///   --file path   read prompt from file (avoids shell quoting issues)
+    ///   -             read prompt from stdin
+    ///   PROMPT arg    inline prompt string
     Run {
-        /// The prompt to execute
-        prompt: String,
+        /// Inline prompt (use --file or - for multi-line / special-char prompts)
+        #[arg(required_unless_present = "file")]
+        prompt: Option<String>,
+        /// Read prompt from a file instead of the command line
+        #[arg(short, long, value_name = "PATH")]
+        file: Option<String>,
         /// Config file path
         #[arg(short, long, default_value = "doltclaw.toml")]
         config: String,
@@ -44,14 +57,40 @@ async fn main() -> doltclaw::Result<()> {
     tracing_subscriber::fmt::init();
     let cli = Cli::parse();
 
+    // Load environment variables before config parsing (config uses ${ENV_VAR} substitution)
+    if let Some(ref path) = cli.env_file {
+        dotenvy::from_path(path)
+            .map_err(|e| doltclaw::Error::Config(format!("Failed to load env file {}: {}", path, e)))?;
+    } else {
+        // Try .env in current directory, then ~/.config/doltclaw/.env
+        dotenvy::dotenv().ok();
+        if let Ok(home) = std::env::var("HOME") {
+            dotenvy::from_path(format!("{}/.config/doltclaw/.env", home)).ok();
+        }
+    }
+
     match cli.command {
-        Commands::Run { prompt, config, timeout } => {
+        Commands::Run { prompt, file, config, timeout } => {
+            let prompt_text = if let Some(path) = file {
+                // --file: read prompt from file, no shell quoting issues
+                std::fs::read_to_string(&path)
+                    .map_err(|e| doltclaw::Error::Io(e))?
+            } else if prompt.as_deref() == Some("-") {
+                // stdin: pipe prompt in
+                use std::io::Read;
+                let mut buf = String::new();
+                std::io::stdin().read_to_string(&mut buf)
+                    .map_err(|e| doltclaw::Error::Io(e))?;
+                buf
+            } else {
+                prompt.unwrap_or_default()
+            };
             let mut cfg = doltclaw::Config::load(config.as_ref())?;
             if let Some(ms) = timeout {
                 cfg.agent.timeout_ms = ms;
             }
             let mut agent = doltclaw::Agent::from_config(cfg)?;
-            let response = agent.execute(&prompt).await?;
+            let response = agent.execute(&prompt_text).await?;
             println!("{}", response.content);
             eprintln!(
                 "\n--- {} iterations, {} tokens, model: {} ---",

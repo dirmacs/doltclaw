@@ -18,7 +18,7 @@ required-features = ["cli"]
 
 [features]
 default = []
-cli = ["dep:clap", "dep:tracing-subscriber"]
+cli = ["dep:clap", "dep:tracing-subscriber", "dep:dotenvy"]
 
 [dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
@@ -35,6 +35,7 @@ uuid = { version = "1", features = ["v4"] }
 # CLI only
 clap = { version = "4", features = ["derive"], optional = true }
 tracing-subscriber = { version = "0.3", optional = true }
+dotenvy = { version = "0.15", optional = true }
 
 [profile.release]
 opt-level = "z"
