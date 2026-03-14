@@ -1,0 +1,37 @@
+# doltclaw configuration for doltdot/doltares
+# Migrated from openclaw.json
+
+[providers.nvidia-nim]
+base_url = "https://integrate.api.nvidia.com/v1"
+api_key = "${NVIDIA_API_KEY}"
+api = "openai-completions"
+
+[[providers.nvidia-nim.models]]
+id = "qwen/qwen3.5-122b-a10b"
+name = "Qwen 3.5 122B"
+reasoning = false
+context_window = 131072
+max_tokens = 16384
+
+[[providers.nvidia-nim.models]]
+id = "stepfun-ai/step-3.5-flash"
+name = "StepFun Step 3.5 Flash"
+reasoning = false
+context_window = 128000
+max_tokens = 16384
+
+[[providers.nvidia-nim.models]]
+id = "z-ai/glm4.7"
+name = "GLM 4.7"
+reasoning = true
+context_window = 128000
+max_tokens = 16384
+
+[agent]
+primary = "nvidia-nim/qwen/qwen3.5-122b-a10b"
+fallbacks = ["nvidia-nim/stepfun-ai/step-3.5-flash", "nvidia-nim/z-ai/glm4.7"]
+max_iterations = 50
+
+[agent.params]
+temperature = 1.0
+top_p = 0.95
