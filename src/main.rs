@@ -49,6 +49,10 @@ enum Commands {
         /// Path to openclaw.json
         path: String,
     },
+    /// Get workflows from doltares
+    Workflows,
+    /// Get skills from doltares
+    Skills,
 }
 
 #[cfg(feature = "cli")]
@@ -120,6 +124,43 @@ async fn main() -> doltclaw::Result<()> {
                 .map_err(|e| doltclaw::Error::Config(format!("Invalid JSON: {}", e)))?;
             let toml = migrate_openclaw_json(&json);
             print!("{}", toml);
+        }
+        Commands::Workflows => {
+            // Read schedules directly from doltares schedules.toml
+            let schedules_path = std::env::var("DOLTARES_SCHEDULES")
+                .unwrap_or_else(|_| "/opt/doltares/schedules.toml".to_string());
+            let content = std::fs::read_to_string(&schedules_path)
+                .map_err(|e| doltclaw::Error::Config(format!("Cannot read {}: {}", schedules_path, e)))?;
+            let parsed: toml::Value = toml::from_str(&content)
+                .map_err(|e| doltclaw::Error::Config(format!("Invalid TOML in {}: {}", schedules_path, e)))?;
+            let json = serde_json::to_value(&parsed)
+                .map_err(|e| doltclaw::Error::Config(format!("Serialization error: {}", e)))?;
+            println!("{}", serde_json::to_string_pretty(&json)
+                .map_err(|e| doltclaw::Error::Config(format!("JSON error: {}", e)))?);
+        }
+        Commands::Skills => {
+            let url = std::env::var("DOLTARES_URL").unwrap_or_else(|_| "http://localhost:3100".to_string());
+            let api_key = std::env::var("DOLTA_API_KEY")
+                .map_err(|_| doltclaw::Error::Config("DOLTA_API_KEY environment variable not set".to_string()))?;
+            
+            let client = reqwest::Client::new();
+            let res = client
+                .get(&format!("{}/api/skills", url))
+                .header("Authorization", format!("Bearer {}", api_key))
+                .send()
+                .await
+                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            
+            if res.status().is_success() {
+                let json: serde_json::Value = res.json()
+                    .await
+                    .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                println!("{}", serde_json::to_string_pretty(&json)
+                    .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?);
+            } else {
+                eprintln!("Error: {}", res.status());
+                std::process::exit(1);
+            }
         }
     }
 
