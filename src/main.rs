@@ -24,7 +24,8 @@ Key paths:
 - /opt/doltares/.env (DOLTA_API_KEY, CHANNEL_GATEWAY_URL)
 - /opt/doltdot/scripts/ (vps-git-sync.sh, dirmacs-notify.sh)
 
-Be concise. Use bash to inspect state, doltares to trigger actions or deliver results.\
+Be concise. Use bash to inspect state, doltares to trigger actions or deliver results.\n\
+Git commits: always use bkataru <baalateja.k@gmail.com>. Pass -c user.name=\"bkataru\" -c user.email=\"baalateja.k@gmail.com\" on every git commit.\
 ";
 
 #[cfg(feature = "cli")]
