@@ -53,6 +53,18 @@ enum Commands {
     Workflows,
     /// Get skills from doltares
     Skills,
+    /// Send a message to Shanjeth via the doltares relay (works before channel-gateway is paired).
+    /// The relay is a SQLite outbox; Shanjeth's Mac polls /api/relay/poll and delivers via openclaw.
+    Relay {
+        /// Message to send (use "-" to read from stdin)
+        message: String,
+        /// Recipient phone number (default: CHANNEL_DEFAULT_WHATSAPP_TO or "last")
+        #[arg(long, default_value = "last")]
+        to: String,
+        /// Doltares base URL (overrides DOLTARES_URL env)
+        #[arg(long, default_value = "http://localhost:3100")]
+        url: String,
+    },
 }
 
 #[cfg(feature = "cli")]
@@ -137,6 +149,37 @@ async fn main() -> doltclaw::Result<()> {
                 .map_err(|e| doltclaw::Error::Config(format!("Serialization error: {}", e)))?;
             println!("{}", serde_json::to_string_pretty(&json)
                 .map_err(|e| doltclaw::Error::Config(format!("JSON error: {}", e)))?);
+        }
+        Commands::Relay { message, to, url } => {
+            let msg = if message == "-" {
+                use std::io::Read;
+                let mut buf = String::new();
+                std::io::stdin().read_to_string(&mut buf)
+                    .map_err(|e| doltclaw::Error::Io(e))?;
+                buf.trim().to_string()
+            } else {
+                message
+            };
+            let api_key = std::env::var("DOLTA_API_KEY")
+                .map_err(|_| doltclaw::Error::Config("DOLTA_API_KEY not set".to_string()))?;
+            let client = reqwest::Client::new();
+            let body = serde_json::json!({ "to": to, "message": msg });
+            let res = client
+                .post(&format!("{}/api/relay", url))
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&body)
+                .send()
+                .await
+                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            let status = res.status();
+            let json: serde_json::Value = res.json().await
+                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            if status.is_success() {
+                println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
+            } else {
+                eprintln!("relay error {}: {}", status, serde_json::to_string_pretty(&json).unwrap_or_default());
+                std::process::exit(1);
+            }
         }
         Commands::Skills => {
             let url = std::env::var("DOLTARES_URL").unwrap_or_else(|_| "http://localhost:3100".to_string());
