@@ -4,6 +4,30 @@
 use clap::{Parser, Subcommand};
 
 #[cfg(feature = "cli")]
+const VPS_SYSTEM_PROMPT: &str = "\
+You are doltclaw, an AI orchestration agent running on the Dirmacs VPS (217.216.78.38, Ubuntu).
+
+You have two tools:
+- bash: execute shell commands (df -h, free -h, systemctl status, journalctl, curl, etc.)
+- doltares: call the doltares orchestration API (trigger workflows, deliver WhatsApp, queue relay)
+
+Key services:
+- ARES agent runtime:       localhost:3000   → api.ares.dirmacs.com
+- Eruka context engine:     localhost:8081   → eruka.dirmacs.com
+- Doltares orchestration:   localhost:3100   → claw.dirmacs.com
+- channel-gateway (WA):     localhost:9000   (may need QR pairing)
+- PostgreSQL:                localhost:5432   (databases: ares, eruka, doltares)
+- Caddy reverse proxy:      port 80/443
+
+Key paths:
+- /opt/{ares,eruka,doltares,doltclaw,pawan,doltdot}/
+- /opt/doltares/.env (DOLTA_API_KEY, CHANNEL_GATEWAY_URL)
+- /opt/doltdot/scripts/ (vps-git-sync.sh, dirmacs-notify.sh)
+
+Be concise. Use bash to inspect state, doltares to trigger actions or deliver results.\
+";
+
+#[cfg(feature = "cli")]
 #[derive(Parser)]
 #[command(name = "doltclaw", version, about = "Minimal agent runtime for dirmacs")]
 struct Cli {
@@ -65,6 +89,17 @@ enum Commands {
         #[arg(long, default_value = "http://localhost:3100")]
         url: String,
     },
+    /// Trigger a doltares workflow and print the result
+    Trigger {
+        /// Workflow name (morning-briefing, self-healing, pr-review, vps-git-sync)
+        workflow: String,
+        /// Doltares base URL
+        #[arg(long, default_value = "http://localhost:3100")]
+        url: String,
+        /// Output raw JSON instead of pretty-printed
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[cfg(feature = "cli")]
@@ -105,7 +140,23 @@ async fn main() -> doltclaw::Result<()> {
             if let Some(ms) = timeout {
                 cfg.agent.timeout_ms = ms;
             }
+            // Inject VPS system prompt if not set in config
+            if cfg.agent.params.system_prompt.is_none() {
+                cfg.agent.params.system_prompt = Some(VPS_SYSTEM_PROMPT.to_string());
+            }
             let mut agent = doltclaw::Agent::from_config(cfg)?;
+
+            // Register built-in tools
+            use std::sync::Arc;
+            agent.register_tool(Arc::new(doltclaw::builtin_tools::BashTool));
+            let doltares_url = std::env::var("DOLTARES_URL")
+                .unwrap_or_else(|_| "http://localhost:3100".to_string());
+            if let Ok(api_key) = std::env::var("DOLTA_API_KEY") {
+                agent.register_tool(Arc::new(
+                    doltclaw::builtin_tools::DoltaresTool::new(doltares_url, api_key),
+                ));
+            }
+
             let response = agent.execute(&prompt_text).await?;
             println!("{}", response.content);
             eprintln!(
@@ -178,6 +229,31 @@ async fn main() -> doltclaw::Result<()> {
                 println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
             } else {
                 eprintln!("relay error {}: {}", status, serde_json::to_string_pretty(&json).unwrap_or_default());
+                std::process::exit(1);
+            }
+        }
+        Commands::Trigger { workflow, url, json } => {
+            let api_key = std::env::var("DOLTA_API_KEY")
+                .map_err(|_| doltclaw::Error::Config("DOLTA_API_KEY not set".to_string()))?;
+            let client = reqwest::Client::new();
+            let res = client
+                .post(&format!("{}/api/workflow/{}", url, workflow))
+                .header("Authorization", format!("Bearer {}", api_key))
+                .json(&serde_json::json!({}))
+                .send()
+                .await
+                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            let status = res.status();
+            let body: serde_json::Value = res.json().await
+                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            if status.is_success() {
+                if json {
+                    println!("{}", serde_json::to_string(&body).unwrap_or_default());
+                } else {
+                    println!("{}", serde_json::to_string_pretty(&body).unwrap_or_default());
+                }
+            } else {
+                eprintln!("Error {}: {}", status, serde_json::to_string_pretty(&body).unwrap_or_default());
                 std::process::exit(1);
             }
         }

@@ -20,6 +20,7 @@
 
 pub mod agent;
 pub mod backend;
+pub mod builtin_tools;
 pub mod config;
 pub mod tools;
 pub mod types;
