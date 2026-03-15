@@ -221,10 +221,10 @@ async fn main() -> doltclaw::Result<()> {
                 .json(&body)
                 .send()
                 .await
-                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                .map_err(|e| doltclaw::Error::Agent(e.to_string()))?;
             let status = res.status();
             let json: serde_json::Value = res.json().await
-                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                .map_err(|e| doltclaw::Error::Agent(e.to_string()))?;
             if status.is_success() {
                 println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
             } else {
@@ -242,10 +242,10 @@ async fn main() -> doltclaw::Result<()> {
                 .json(&serde_json::json!({}))
                 .send()
                 .await
-                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                .map_err(|e| doltclaw::Error::Agent(e.to_string()))?;
             let status = res.status();
             let body: serde_json::Value = res.json().await
-                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                .map_err(|e| doltclaw::Error::Agent(e.to_string()))?;
             if status.is_success() {
                 if json {
                     println!("{}", serde_json::to_string(&body).unwrap_or_default());
@@ -268,14 +268,14 @@ async fn main() -> doltclaw::Result<()> {
                 .header("Authorization", format!("Bearer {}", api_key))
                 .send()
                 .await
-                .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
-            
+                .map_err(|e| doltclaw::Error::Agent(e.to_string()))?;
+
             if res.status().is_success() {
                 let json: serde_json::Value = res.json()
                     .await
-                    .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                    .map_err(|e| doltclaw::Error::Agent(e.to_string()))?;
                 println!("{}", serde_json::to_string_pretty(&json)
-                    .map_err(|e| doltclaw::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?);
+                    .map_err(|e| doltclaw::Error::Config(e.to_string()))?);
             } else {
                 eprintln!("Error: {}", res.status());
                 std::process::exit(1);

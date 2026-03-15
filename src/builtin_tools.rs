@@ -103,13 +103,19 @@ impl Tool for BashTool {
 pub struct DoltaresTool {
     base_url: String,
     api_key: String,
+    client: reqwest::Client,
 }
 
 impl DoltaresTool {
     pub fn new(base_url: impl Into<String>, api_key: impl Into<String>) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .expect("failed to build reqwest client");
         Self {
             base_url: base_url.into(),
             api_key: api_key.into(),
+            client,
         }
     }
 }
@@ -159,19 +165,13 @@ impl Tool for DoltaresTool {
             .as_str()
             .ok_or_else(|| crate::Error::Tool("action is required".into()))?;
 
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|e| crate::Error::Agent(e.to_string()))?;
-
-        let (url, body, method) = match action {
+        let (url, body) = match action {
             "deliver" => {
                 let msg = args["message"].as_str().unwrap_or("");
                 let to = args["to"].as_str().unwrap_or("last");
                 (
                     format!("{}/api/deliver", self.base_url),
                     json!({ "channel": "whatsapp", "to": to, "message": msg }),
-                    "post",
                 )
             }
             "trigger" => {
@@ -181,7 +181,6 @@ impl Tool for DoltaresTool {
                 (
                     format!("{}/api/workflow/{}", self.base_url, wf),
                     json!({}),
-                    "post",
                 )
             }
             "relay" => {
@@ -190,22 +189,18 @@ impl Tool for DoltaresTool {
                 (
                     format!("{}/api/relay", self.base_url),
                     json!({ "to": to, "message": msg }),
-                    "post",
                 )
             }
             _ => return Err(crate::Error::Tool(format!("Unknown action: {}", action))),
         };
 
-        let res = match method {
-            "post" => client
-                .post(&url)
-                .header("Authorization", format!("Bearer {}", self.api_key))
-                .json(&body)
-                .send()
-                .await,
-            _ => unreachable!(),
-        }
-        .map_err(|e| crate::Error::Agent(format!("doltares request failed: {}", e)))?;
+        let res = self.client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| crate::Error::Agent(format!("doltares request failed: {}", e)))?;
 
         let http_status = res.status().as_u16();
         let json: Value = res
