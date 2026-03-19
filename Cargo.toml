@@ -6,6 +6,9 @@ license = "MIT"
 repository = "https://github.com/dirmacs/doltclaw"
 authors = ["Dirmacs <build@dirmacs.com>"]
 description = "Minimal agent runtime: LLM inference, model fallback, tool calling"
+keywords = ["agent", "llm", "tool-calling", "runtime", "cli"]
+categories = ["command-line-utilities"]
+exclude = ["AGENTS.md", "CLAUDE.md", "pawan.toml"]
 
 [lib]
 name = "doltclaw"
