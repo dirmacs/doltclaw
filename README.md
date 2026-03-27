@@ -11,8 +11,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/rust-stable-orange.svg" alt="Rust">
   <img src="https://img.shields.io/badge/binary-2.9MB-green.svg" alt="2.9MB binary">
-  <img src="https://img.shields.io/badge/tests-22-brightgreen.svg" alt="22 tests">
-  <img src="https://img.shields.io/badge/deps-10-blue.svg" alt="10 deps">
 </p>
 
 ---
