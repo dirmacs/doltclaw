@@ -101,6 +101,38 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Run in ralph-loop mode: execute a prompt repeatedly until duration elapses.
+    ///
+    /// Inspired by the "Ralph Wiggum loop" pattern — autonomous iteration where
+    /// the agent keeps working on a project indefinitely. Each tick runs the
+    /// prompt, sleeps the interval, then runs it again. Intended for
+    /// walkaway work on long-running improvement projects.
+    ///
+    /// Prompt guidance: make the prompt anti-idle — tell the agent to always
+    /// produce concrete work (a commit, a test, a doc update) per tick.
+    /// Example: "Continue improving this project. Pick one small task and
+    /// commit it. Never report status — always DO work."
+    ///
+    /// See docs/content/ralph-mode.md for the full pattern.
+    Ralph {
+        /// The prompt to run on each iteration
+        prompt: String,
+        /// Config file path
+        #[arg(short, long, default_value = "doltclaw.toml")]
+        config: String,
+        /// Interval between iterations in seconds (default: 180 = 3 minutes)
+        #[arg(long, default_value = "180")]
+        interval: u64,
+        /// Total duration to run in seconds (default: 14400 = 4 hours)
+        #[arg(long, default_value = "14400")]
+        duration: u64,
+        /// Maximum iterations (default: unlimited until duration elapses)
+        #[arg(long)]
+        max_iterations: Option<usize>,
+        /// Stop on first error (default: continue on errors)
+        #[arg(long)]
+        stop_on_error: bool,
+    },
 }
 
 #[cfg(feature = "cli")]
@@ -262,7 +294,7 @@ async fn main() -> doltclaw::Result<()> {
             let url = std::env::var("DOLTARES_URL").unwrap_or_else(|_| "http://localhost:3100".to_string());
             let api_key = std::env::var("DOLTA_API_KEY")
                 .map_err(|_| doltclaw::Error::Config("DOLTA_API_KEY environment variable not set".to_string()))?;
-            
+
             let client = reqwest::Client::new();
             let res = client
                 .get(&format!("{}/api/skills", url))
@@ -281,6 +313,105 @@ async fn main() -> doltclaw::Result<()> {
                 eprintln!("Error: {}", res.status());
                 std::process::exit(1);
             }
+        }
+        Commands::Ralph {
+            prompt,
+            config,
+            interval,
+            duration,
+            max_iterations,
+            stop_on_error,
+        } => {
+            // Ralph-loop mode: run the prompt repeatedly until duration elapses.
+            // Anti-idle: every iteration executes the prompt regardless of prior
+            // state. The prompt itself should tell the agent to always produce
+            // concrete work per tick.
+            use std::sync::Arc;
+            use std::time::{Duration, Instant};
+
+            let mut cfg = doltclaw::Config::load(config.as_ref())?;
+            if cfg.agent.params.system_prompt.is_none() {
+                cfg.agent.params.system_prompt = Some(VPS_SYSTEM_PROMPT.to_string());
+            }
+
+            let start = Instant::now();
+            let budget = Duration::from_secs(duration);
+            let tick = Duration::from_secs(interval);
+            let mut iteration: usize = 0;
+            let mut successes: usize = 0;
+            let mut failures: usize = 0;
+
+            eprintln!(
+                "ralph-loop starting — interval={}s duration={}s max_iter={:?}",
+                interval, duration, max_iterations
+            );
+
+            loop {
+                iteration += 1;
+                if let Some(max) = max_iterations {
+                    if iteration > max {
+                        eprintln!("ralph-loop: reached max_iterations={}", max);
+                        break;
+                    }
+                }
+                if start.elapsed() >= budget {
+                    eprintln!("ralph-loop: duration budget exhausted");
+                    break;
+                }
+
+                eprintln!(
+                    "\n=== ralph tick {} (elapsed {}s) ===",
+                    iteration,
+                    start.elapsed().as_secs()
+                );
+
+                // Fresh agent per tick so context doesn't accumulate indefinitely
+                let mut agent = doltclaw::Agent::from_config(cfg.clone())?;
+                agent.register_tool(Arc::new(doltclaw::builtin_tools::BashTool));
+                let doltares_url = std::env::var("DOLTARES_URL")
+                    .unwrap_or_else(|_| "http://localhost:3100".to_string());
+                if let Ok(api_key) = std::env::var("DOLTA_API_KEY") {
+                    agent.register_tool(Arc::new(
+                        doltclaw::builtin_tools::DoltaresTool::new(doltares_url, api_key),
+                    ));
+                }
+
+                match agent.execute(&prompt).await {
+                    Ok(response) => {
+                        successes += 1;
+                        println!("{}", response.content);
+                        eprintln!(
+                            "--- tick {} ok: {} iter, {} tokens, model {} ---",
+                            iteration,
+                            response.iterations,
+                            response.usage.total_tokens,
+                            response.model_used
+                        );
+                    }
+                    Err(e) => {
+                        failures += 1;
+                        eprintln!("--- tick {} failed: {} ---", iteration, e);
+                        if stop_on_error {
+                            eprintln!("ralph-loop: stop_on_error set, exiting");
+                            return Err(e);
+                        }
+                    }
+                }
+
+                // Sleep until the next tick, unless we're out of budget
+                if start.elapsed() + tick >= budget {
+                    break;
+                }
+                tokio::time::sleep(tick).await;
+            }
+
+            eprintln!(
+                "\nralph-loop done — {} ticks ({} ok, {} failed, {}s elapsed)",
+                iteration,
+                successes,
+                failures,
+                start.elapsed().as_secs()
+            );
         }
     }
 
