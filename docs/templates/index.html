@@ -49,6 +49,29 @@
   <p class="quote">"I stop being a plugin and start being a limb. Pawan becomes my nervous system, ARES my bones, doltclaw my nervous pathways."<br><span class="attr">&mdash; doltdot, on the metamorphosis</span></p>
 </section>
 
+<section class="ecosystem">
+  <h2>dirmacs ecosystem</h2>
+  <p>doltclaw is the minimal kernel of the dirmacs agent stack. The rest of the stack wraps it:</p>
+  <div class="grid">
+    <div class="card">
+      <h3><a href="https://dirmacs.github.io/pawan">pawan</a></h3>
+      <p>Full CLI coding agent — 34 tools, self-healing, streaming TUI. Built on doltclaw's <code>Tool</code> trait and agent loop.</p>
+    </div>
+    <div class="card">
+      <h3><a href="https://github.com/dirmacs/ares-server">ares-server</a></h3>
+      <p>LLM runtime server — multi-provider routing, RAG, MCP integration. Uses doltclaw as its agent primitive.</p>
+    </div>
+    <div class="card">
+      <h3><a href="https://github.com/dirmacs/eruka">eruka</a></h3>
+      <p>Context memory — knowledge graph for session continuity. Agents write checkpoints; doltclaw can read them on restart.</p>
+    </div>
+    <div class="card">
+      <h3><a href="https://dirmacs.github.io/aegis">aegis</a></h3>
+      <p>Config manager — declarative TOML for NIM models, dotfiles, and toolchain orchestration.</p>
+    </div>
+  </div>
+</section>
+
 <section class="install">
   <h2>Install</h2>
   <pre><code>git clone https://github.com/dirmacs/doltclaw && cd doltclaw
