@@ -1,0 +1,12 @@
+target/
+.git/
+.gitignore
+Dockerfile
+.dockerignore
+*.md
+.env
+.env.*
+tmp/
+backups/
+docs/
+scripts/
